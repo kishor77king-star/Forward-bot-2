@@ -24,21 +24,22 @@ API_ID = int(os.environ.get("API_ID", 0))
 API_HASH = os.environ.get("API_HASH", "")
 SESSION = os.environ.get("SESSION", "")
 
-# Env variables nundi source and bot details theesukuntundi
-SOURCE_CHANNEL = os.environ.get("SOURCE_CHANNEL", "").strip() 
+# Multiple channels support
+source_env = os.environ.get("SOURCE_CHANNEL", "").strip()
+SOURCE_CHANNELS = [ch.strip() for ch in source_env.split(",") if ch.strip()]
+
 CONVERTER_BOT = os.environ.get("CONVERTER_BOT", "").strip()
 
 app = Client("affiliate_userbot", session_string=SESSION, api_id=API_ID, api_hash=API_HASH)
 
-@app.on_message(filters.chat(SOURCE_CHANNEL))
-def send_to_converter(client, message):
+# Ikkada 'async' mariyu 'await' add chesam
+@app.on_message(filters.chat(SOURCE_CHANNELS))
+async def send_to_converter(client, message):
     try:
-        # Converter bots ki 'forwarded from' tag unte chala sarlu pani cheyavu.
-        # Anduke 'copy' vadutunnam. Idi direct ga meeru type chesi pampinatlu velthundi.
-        message.copy(CONVERTER_BOT)
-        print(f"Deal successfully sent to {CONVERTER_BOT}")
+        await message.copy(CONVERTER_BOT)
+        print(f"Deal successfully copied to {CONVERTER_BOT}")
     except Exception as e:
-        print(f"Error sending message: {e}")
+        print(f"Error copying message: {e}")
 
-print("Userbot is successfully starting...")
+print(f"Userbot is watching channels: {SOURCE_CHANNELS}")
 app.run()
