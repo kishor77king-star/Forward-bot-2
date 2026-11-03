@@ -11,6 +11,11 @@ class DummyHandler(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'text/plain')
         self.end_headers()
         self.wfile.write(b"Userbot is active and watching for deals!")
+        
+    # HEAD requests valla vache '501 Unsupported method' error fix
+    def do_HEAD(self):
+        self.send_response(200)
+        self.end_headers()
 
 def run_dummy_server():
     port = int(os.environ.get("PORT", 8080))
