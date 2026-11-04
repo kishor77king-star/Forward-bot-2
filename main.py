@@ -1,6 +1,7 @@
 import os
 import time
 import threading
+import asyncio
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pyrogram import Client, filters
 
@@ -12,7 +13,6 @@ class DummyHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b"Userbot is active and watching for deals!")
         
-    # HEAD requests valla vache '501 Unsupported method' error fix
     def do_HEAD(self):
         self.send_response(200)
         self.end_headers()
@@ -37,26 +37,24 @@ CONVERTER_BOT = os.environ.get("CONVERTER_BOT", "").strip()
 
 app = Client("affiliate_userbot", session_string=SESSION, api_id=API_ID, api_hash=API_HASH)
 
-# Multiple photos (albums) ni track cheyadaniki chinna memory list
 processed_groups = []
 
 @app.on_message(filters.chat(SOURCE_CHANNELS))
 async def send_to_converter(client, message):
     try:
-        # Message lo multiple photos unte...
+        # Message lo multiple photos unte (Album)
         if message.media_group_id:
             if message.media_group_id in processed_groups:
-                return # Already pampisina group aithe aapeyali
+                return 
             
             processed_groups.append(message.media_group_id)
             if len(processed_groups) > 50:
-                processed_groups.pop(0) # Memory full avvakunda pathavi delete chestham
+                processed_groups.pop(0) 
                 
-            # Album mottanni okesari copy chestundi
             await client.copy_media_group(CONVERTER_BOT, message.chat.id, message.id)
             print(f"Album deal successfully copied to {CONVERTER_BOT}")
             
-        # Normal single photo leda text message aithe...
+        # Normal single photo leda text message
         else:
             await message.copy(CONVERTER_BOT)
             print(f"Single deal successfully copied to {CONVERTER_BOT}")
@@ -64,12 +62,20 @@ async def send_to_converter(client, message):
     except Exception as e:
         print(f"Error copying message: {e}")
 
-print(f"Userbot is watching channels: {SOURCE_CHANNELS}")
+# --- PERMANENT FIX: AUTO-HEALTH CHECKER ---
+async def main():
+    await app.start()
+    print(f"Userbot is watching channels: {SOURCE_CHANNELS}")
+    
+    while True:
+        try:
+            # Prathi 5 minutes ki connection check chestundi
+            await asyncio.sleep(300)
+            await app.get_me() 
+        except Exception as e:
+            print(f"Telegram Connection Frozen: {e}. Auto-Restarting Server...")
+            # Connection cut ayithe idi process ni kill chestundi, Render malli automatic ga kotha server start chestundi.
+            os._exit(1)
 
-# Auto-reconnect loop (Connection Lost error fix)
-while True:
-    try:
-        app.run()
-    except Exception as e:
-        print(f"Connection lost: {e}. Reconnecting in 5 seconds...")
-        time.sleep(5)
+# Bot ni start chestundi
+app.run(main())
